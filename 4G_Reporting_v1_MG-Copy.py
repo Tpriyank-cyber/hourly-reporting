@@ -1,7 +1,6 @@
 import os
 import pandas as pd
 import streamlit as st
-from tkinter.filedialog import askopenfilename
 
 # List of KPIs to process
 KPI_Obj = [
@@ -11,15 +10,19 @@ KPI_Obj = [
     'Intra eNB HO SR', 'E-RAB DR RAN', 'E-UTRAN E-RAB stp SR', 'Total E-UTRAN RRC conn stp SR'
 ]
 
-# Function to read the file
+# Function to read the file (using Streamlit file uploader)
 def read_file():
     st.write("***Developed By Priyank Tomar***")
-    filename = askopenfilename(parent=root, initialdir='C:\\', title="Please select file")
-    st.write(f"File Selected: {filename}")
-    df = pd.read_excel(filename)
-    df['Period start time'] = pd.to_datetime(df['Period start time'])
-    df["Date"] = df["Period start time"].dt.date
-    return df, filename
+    uploaded_file = st.file_uploader("Choose a file", type=["xlsx", "xls"])
+    
+    if uploaded_file is not None:
+        df = pd.read_excel(uploaded_file)
+        df['Period start time'] = pd.to_datetime(df['Period start time'])
+        df["Date"] = df["Period start time"].dt.date
+        return df, uploaded_file.name
+    else:
+        st.write("Please upload a file to proceed.")
+        return None, None
 
 # Function for Day Cell Level Processing (updated)
 def DaySEG(df):
@@ -108,27 +111,28 @@ def HourCell(df, Hourinput):
 def process_data():
     df, filename = read_file()
 
-    unique_dates = df['Date'].nunique()
-    df_columns_list = df.columns
+    if df is not None:
+        unique_dates = df['Date'].nunique()
+        df_columns_list = df.columns
 
-    # Ask user for input on the sheet type
-    sheet_type = st.selectbox("Select Sheet Type", ["BBH", "Continue"])
+        # Ask user for input on the sheet type
+        sheet_type = st.selectbox("Select Sheet Type", ["BBH", "Continue"])
 
-    if sheet_type == "BBH" and "LNCEL name" in df_columns_list:
-        DaySEG(df)
-    elif sheet_type == "Continue" and "PLMN Name" in df_columns_list and "CS RRC SR" in df_columns_list:
-        len_period = len(df.iloc[2, 0])
-        if len_period <= 10:
-            DayPLMN(df)
-    elif sheet_type == "Continue" and "LNCEL name" in df_columns_list:
-        if unique_dates == 1:
-            st.write("Unique date found, processing without Hour input.")
-            HourCellWithoutInput(df)
+        if sheet_type == "BBH" and "LNCEL name" in df_columns_list:
+            DaySEG(df)
+        elif sheet_type == "Continue" and "PLMN Name" in df_columns_list and "CS RRC SR" in df_columns_list:
+            len_period = len(df.iloc[2, 0])
+            if len_period <= 10:
+                DayPLMN(df)
+        elif sheet_type == "Continue" and "LNCEL name" in df_columns_list:
+            if unique_dates == 1:
+                st.write("Unique date found, processing without Hour input.")
+                HourCellWithoutInput(df)
+            else:
+                Hourinput = st.number_input("Input Hour", min_value=0, max_value=23)
+                HourCell(df, Hourinput)
         else:
-            Hourinput = st.number_input("Input Hour", min_value=0, max_value=23)
-            HourCell(df, Hourinput)
-    else:
-        st.write("Wrong input file provided")
+            st.write("Wrong input file provided")
 
 # Run the Streamlit app
 if __name__ == "__main__":
