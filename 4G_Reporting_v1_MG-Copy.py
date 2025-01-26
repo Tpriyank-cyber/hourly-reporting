@@ -1,74 +1,108 @@
-import streamlit as st
+import os
 import pandas as pd
+import streamlit as st
 
-# Streamlit App Title
-st.title("LTE KPI Processing Tool")
+# Display information in Streamlit app
+st.title("***Developed By Priyank Tomar***")
+st.write("Current Working Directory: ", os.getcwd())
 
-# File Uploader
-uploaded_file = st.file_uploader("Upload an Excel file", type=["xls", "xlsx"])
+# File upload via Streamlit interface
+file = st.file_uploader("Please select a file", type=["xlsx", "xls"])
+if file is not None:
+    df = pd.read_excel(file)
 
-# KPI Object List
-KPI_Obj = [
-    'Cell Avail excl BLU','RRC_CONN_UE_MAX (M8001C200)','Avg PDCP cell thp DL',
-    'Avg IP thp DL QCI9','Total LTE data volume, DL + UL','Perc DL PRB Util',
-    'Avg UE distance','Average CQI','Avg RRC conn UE','inter eNB E-UTRAN HO SR X2',
-    'Intra eNB HO SR','E-RAB DR RAN','E-UTRAN E-RAB stp SR','Total E-UTRAN RRC conn stp SR'
-]
+    # Display first few rows of the dataframe
+    st.write(df.head())
 
-# Function for Processing Data
-def process_data(df, processing_type, hour_input=None):
+    # Sheet type input
+    type = st.selectbox("Input sheet is on", ["BBH", "Continue"])
+
+    # Define KPI Object
+    KPI_Obj = ['Cell Avail excl BLU', 'RRC_CONN_UE_MAX (M8001C200)', 'Avg PDCP cell thp DL',
+               'Avg IP thp DL QCI9', 'Total LTE data volume, DL + UL', 'Perc DL PRB Util',
+               'Avg UE distance', 'Average CQI', 'Avg RRC conn UE', 'inter eNB E-UTRAN HO SR X2',
+               'Intra eNB HO SR', 'E-RAB DR RAN', 'E-UTRAN E-RAB stp SR', 'Total E-UTRAN RRC conn stp SR']
+
+    # Processing Functions
+    def DayPLMN(df):
+        st.write("Processing Day PLMN Level...")
+        df1 = df.copy()
+        df1 = df1.drop([0], axis=0)
+        df1['Start Time'] = pd.to_datetime(df1['Period start time'])
+        df1["Date"] = df1["Period start time"].dt.date
+        df1[KPI_Obj] = df1[KPI_Obj].astype('float32')
+        pivot1 = pd.pivot_table(df1, index=['MRBTS name'], columns='Date', values=KPI_Obj, aggfunc='sum')
+        pivot1 = pivot1.stack(level=0).reset_index(drop=False)
+        pivot1.rename(columns={'level_1': 'KPI NAME'}, inplace=True)
+        st.write(pivot1)
+
+    def DaySite(df):
+        st.write("Processing Day Site Level...")
+        df1 = df.copy()
+        df1 = df1.drop([0], axis=0)
+        df1['Start Time'] = pd.to_datetime(df1['Period start time'])
+        df1["Date"] = df1["Period start time"].dt.date
+        df1[KPI_Obj] = df1[KPI_Obj].astype('float32')
+        pivot1 = pd.pivot_table(df1, index=['MRBTS name', 'LNBTS name'], columns='Date', values=KPI_Obj, aggfunc='sum')
+        pivot1 = pivot1.stack(level=0).reset_index(drop=False)
+        pivot1.rename(columns={'level_1': 'KPI NAME'}, inplace=True)
+        st.write(pivot1)
+
+    def DaySEG(df):
+        st.write("Processing Day Cell Level...")
+        df1 = df.copy()
+        df1 = df1.drop([0], axis=0)
+        df1['Start Time'] = pd.to_datetime(df1['Period start time'])
+        df1["Date"] = df1["Period start time"].dt.date
+        df1[KPI_Obj] = df1[KPI_Obj].astype('float32')
+        pivot1 = pd.pivot_table(df1, index=['MRBTS name', 'LNCEL name'], columns='Date', values=KPI_Obj, aggfunc='sum')
+        pivot1 = pivot1.stack(level=0).reset_index(drop=False)
+        pivot1.rename(columns={'level_2': 'KPI NAME'}, inplace=True)
+        st.write(pivot1)
+
+    def HourCellWithoutInput(df):
+        st.write("Processing Hour Cell Level Without Input...")
+        df1 = df.copy()
+        df1 = df1.drop([0], axis=0)
+        df1['Start Time'] = pd.to_datetime(df1['Period start time'])
+        df1["Date"] = df1["Period start time"].dt.date
+        df1["Hour"] = df1["Period start time"].dt.hour
+        df1[KPI_Obj] = df1[KPI_Obj].astype('float32')
+        pivot1 = pd.pivot_table(df1, index=['MRBTS name', 'LNCEL name'], columns=['Date', 'Hour'], values=KPI_Obj, aggfunc='sum', dropna=False)
+        pivot1 = pivot1.stack(level=0).reset_index(drop=False)
+        pivot1.rename(columns={'level_2': 'KPI NAME'}, inplace=True)
+        st.write(pivot1)
+
+    def HourCell(df, Hourinput):
+        st.write(f"Processing Hour Cell Level for Hour {Hourinput}...")
+        df1 = df.copy()
+        df1 = df1.drop([0], axis=0)
+        df1['Start Time'] = pd.to_datetime(df1['Period start time'])
+        df1["Date"] = df1["Period start time"].dt.date
+        df1["Hour"] = df1["Period start time"].dt.hour
+        df1 = df1[(df1['Hour'] == Hourinput)]
+        df1[KPI_Obj] = df1[KPI_Obj].astype('float32')
+        pivot1 = pd.pivot_table(df1, index=['MRBTS name', 'LNCEL name'], columns='Date', values=KPI_Obj, aggfunc='sum')
+        pivot1 = pivot1.stack(level=0).reset_index(drop=False)
+        pivot1.rename(columns={'level_2': 'KPI NAME'}, inplace=True)
+        st.write(pivot1)
+
+    # Logic to choose based on sheet type and date uniqueness
     df['Start Time'] = pd.to_datetime(df['Period start time'])
     df["Date"] = df["Period start time"].dt.date
+    unique_dates = df['Date'].nunique()
 
-    # Convert KPI columns to float
-    for kpi in KPI_Obj:
-        if kpi in df.columns:
-            df[kpi] = df[kpi].astype('float32', errors='ignore')
-
-    # Process based on selected type
-    if processing_type == "Day PLMN":
-        pivot1 = pd.pivot_table(df, index=['PLMN Name'], columns='Date', values=KPI_Obj, aggfunc='sum')
-
-    elif processing_type == "Day Site":
-        pivot1 = pd.pivot_table(df, index=['MRBTS name','LNBTS name'], columns='Date', values=KPI_Obj, aggfunc='sum')
-
-    elif processing_type == "Day Cell":
-        pivot1 = pd.pivot_table(df, index=['MRBTS name','LNCEL name'], columns='Date', values=KPI_Obj, aggfunc='sum')
-
-    elif processing_type == "Hour Cell":
-        df["Hour"] = df["Period start time"].dt.hour
-        df = df[df["Hour"] == hour_input]
-        pivot1 = pd.pivot_table(df, index=['MRBTS name','LNCEL name'], columns=['Date', 'Hour'], values=KPI_Obj, aggfunc='sum')
-
+    if type == "BBH" and "LNCEL name" in df.columns:
+        DaySEG(df)
+    elif type == "Continue" and "PLMN Name" in df.columns and "CS RRC SR" in df.columns:
+        if len(df.iloc[2, 0]) <= 10:
+            DayPLMN(df)
+    elif type == "Continue" and "LNCEL name" in df.columns:
+        if unique_dates == 1:
+            st.write("Unique date found, processing without Hour input.")
+            HourCellWithoutInput(df)
+        else:
+            Hourinput = st.number_input("Input Hour", min_value=0, max_value=23)
+            HourCell(df, Hourinput)
     else:
-        st.error("Invalid processing type selected!")
-        return None
-
-    # Convert Pivot Table to DataFrame
-    pivot1 = pivot1.stack(level=0).reset_index(drop=False)
-    pivot1.rename(columns={'level_1': 'KPI NAME'}, inplace=True)
-
-    return pivot1
-
-# Check if file is uploaded
-if uploaded_file:
-    df = pd.read_excel(uploaded_file)
-
-    # Select Processing Type
-    process_type = st.selectbox("Select Processing Type", ["Day PLMN", "Day Site", "Day Cell", "Hour Cell"])
-
-    # Hour input if Hour Cell is selected
-    hour_input = None
-    if process_type == "Hour Cell":
-        hour_input = st.number_input("Enter Hour (0-23)", min_value=0, max_value=23, step=1)
-
-    if st.button("Process Data"):
-        result = process_data(df, process_type, hour_input)
-
-        if result is not None:
-            st.write("### Processed Data")
-            st.dataframe(result)
-
-            # Download Processed Data
-            csv = result.to_csv(index=False).encode('utf-8')
-            st.download_button("Download Processed CSV", csv, "processed_data.csv", "text/csv")
+        st.write("Wrong input file provided")
