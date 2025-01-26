@@ -21,7 +21,7 @@ def process_data(df):
     df["Date"] = df["Period start time"].dt.date
     df[KPI_Obj] = df[KPI_Obj].astype('float32', errors='ignore')
 
-    pivot1 = pd.pivot_table(df, index=['PLMN Name'], columns='Date', values=KPI_Obj, aggfunc='sum')
+    pivot1 = pd.pivot_table(df, index=['MRBTS name'], columns='Date', values=KPI_Obj, aggfunc='sum')
     pivot1 = pivot1.stack(level=0).reset_index(drop=False)
     pivot1.rename(columns={'level_1': 'KPI NAME'}, inplace=True)
 
