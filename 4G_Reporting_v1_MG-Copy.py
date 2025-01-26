@@ -77,7 +77,7 @@ def HourCellWithoutInput(df):
     pivot1 = pd.pivot_table(df1, index=['MRBTS name', 'LNCEL name'], columns=['Date', 'Hour'], values=KPI_Obj, aggfunc='sum', dropna=False)
 
     # Ensure 'Date' is included properly in the output
-    pivot1 = pivot1.stack(level=0).reset_index(drop=False)
+    pivot1 = pivot1.stack(level=[0,1]).reset_index(drop=False)
     pivot1.rename(columns={'level_2': 'KPI NAME'}, inplace=True)
 
     # Reset the index and drop serial number (index)
