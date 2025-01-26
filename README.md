@@ -1,2 +1,1 @@
-"# Hourly-reporting" 
-"# myapp" 
+"# hourly" 
