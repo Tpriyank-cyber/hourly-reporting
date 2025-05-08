@@ -7,7 +7,7 @@ KPI_Obj = [
     'Cell Avail excl BLU', 'RRC_CONN_UE_MAX (M8001C200)', 'Avg PDCP cell thp DL',
     'Avg IP thp DL QCI9', 'Total LTE data volume, DL + UL', 'Perc DL PRB Util',
     'Avg UE distance', 'Average CQI', 'Avg RRC conn UE', 'inter eNB E-UTRAN HO SR X2',
-    'Intra eNB HO SR', 'E-RAB DR RAN', 'E-UTRAN E-RAB stp SR', 'Total E-UTRAN RRC conn stp SR'
+    'Intra eNB HO SR', 'E-RAB DR RAN', 'E-UTRAN E-RAB stp SR', 'Total E-UTRAN RRC conn stp SR','Non-GBR DL throughput'
 ]
 
 # Function to read the file (using Streamlit file uploader)
